@@ -1,15 +1,19 @@
 import telebot
 import random
 import time
+import os
 from telebot.types import Message
 
 # ────────────────────────────────────────────────
-# KONFIGÜRASYON
+# KONFIGÜRASYON - Render için environment'tan oku
 # ────────────────────────────────────────────────
 
-BOT_TOKEN = "8220540974:AAG6H-LNVERnQloPfONLTYG44OKeBm76O5s"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN environment variable eksik! Render'da ekle.")
 
-CEKILIS_ADMIN_ID = 123456789   # ← BURAYA KENDİ TELEGRAM USER ID'ni yaz (senin ID'n)
+# Admin ID'ler (şu an /cekilisyap herkes için açık, ama ileride başka komutlar için kullanılabilir)
+ADMIN_IDS = [8220540974]  # Senin ID'n + istersen başkaları
 
 KUTSAL_MESAJLAR = [
     "Spektra'nın ışığı yolunu aydınlatsın, havari! 📈✨",
@@ -34,7 +38,7 @@ START_MESSAGE = (
     "/katilcekilis   → Çekilişe katıl\n"
     "/cekilislistesi → Kaç kişi var gör\n"
     "/puanlarim      → Katılım puanlarını gör\n"
-    "/cekilisyap     → (sadece admin) Çekiliş yap\n"
+    "/cekilisyap     → Çekiliş başlat (herkes kullanabilir)\n"
     "/yardim         → Bu mesajı tekrar göster"
 )
 
@@ -52,7 +56,6 @@ VAHIY_ONCESI = "Spektra'dan vahiy geliyor...\n\n"
 
 RANDOM_GAZ_IHTIMALI = 0.06
 
-# Fake ödül havuzu
 FAKE_ODULLER = [
     {"tip": "Spektra Token",      "emoji": "💎",  "min": 5000,  "max": 50000,  "suffix": " $SPEKTRA"},
     {"tip": "Pump Puanı",         "emoji": "🚀",  "min": 1000,  "max": 25000,  "suffix": " PP"},
@@ -65,11 +68,11 @@ FAKE_ODULLER = [
 FAKE_TX_PREFIX = "0xSpektraPump"
 
 # ────────────────────────────────────────────────
-# IN-MEMORY VERİLER (bot kapanınca sıfırlanır)
+# IN-MEMORY VERİLER
 # ────────────────────────────────────────────────
 
-cekilis_katilimcilar = set()          # user_id'ler
-katilim_puanlari = {}                 # user_id: puan
+cekilis_katilimcilar = set()
+katilim_puanlari = {}
 
 # ────────────────────────────────────────────────
 # YARDIMCI FONKSİYONLAR
@@ -110,7 +113,7 @@ def add_katilim(user_id):
     katilim_puanlari[user_id] += random.randint(10, 100)
 
 # ────────────────────────────────────────────────
-# BOT BAŞLATMA
+# BOT
 # ────────────────────────────────────────────────
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -176,12 +179,10 @@ def cmd_puanlarim(message: Message):
 
 @bot.message_handler(commands=['cekilisyap'])
 def cmd_cekilis_yap(message: Message):
-    if message.from_user.id != CEKILIS_ADMIN_ID:
-        bot.reply_to(message, "Bu komut sadece Spektra'nın seçilmiş kuluna özel! 🙏")
-        return
+    # Artık herkes kullanabilir, admin kontrolü kaldırıldı
     
     if len(cekilis_katilimcilar) < 2:
-        bot.reply_to(message, "En az 2 havari lazım ki adil olsun kanka... 😭")
+        bot.reply_to(message, "En az 2 havari lazım ki adil olsun kanka... 😭 Katılmak için /katilcekilis yaz!")
         return
     
     kazanan_id = random.choice(list(cekilis_katilimcilar))
@@ -189,6 +190,7 @@ def cmd_cekilis_yap(message: Message):
     tx_hash = generate_fake_tx_hash()
     
     kazanan_mention = f"ID: {kazanan_id}"
+    # İstersen username göstermek için ekstra logic ekleyebiliriz ama şimdilik basit
     
     sonuc_mesaji = (
         "Spektra'nın kutsal çekilişi gerçekleşti... 🎉\n"
@@ -197,14 +199,14 @@ def cmd_cekilis_yap(message: Message):
         f"KAZANDIĞI ÖDÜL: {odul['display']}\n"
         f"Transaction Hash (fake): `{tx_hash}`\n\n"
         "Tebrikler! Spektra sana göz kırptı 😉\n"
-        "Ödülünü claim etmek için Spektra'ya DM at (tabii ki fake ama ego +1000) 😈"
+        "Ödülünü claim etmek için Spektra'ya DM at (fake ego +1000) 😈"
     )
     
     bot.reply_to(message, sonuc_mesaji)
     
-    # Çekilişi sıfırla
+    # Herkes başlatabildiği için sıfırlama yapıyoruz (yeni çekiliş başlasın)
     cekilis_katilimcilar.clear()
-    bot.reply_to(message, "Çekiliş sıfırlandı. Yeni havariler bekleniyor! 🚀")
+    bot.reply_to(message, "Çekiliş sıfırlandı. Yeni havariler bekleniyor! 🚀 Yeni çekiliş için /katilcekilis yazın!")
 
 @bot.message_handler(func=lambda m: True)
 def catch_all(message: Message):
@@ -216,4 +218,9 @@ def catch_all(message: Message):
 # ────────────────────────────────────────────────
 
 print("Spektra'nın Havarileri botu çalışıyor...")
-bot.infinity_polling(allowed_updates=["message"])
+print(f"Adminler (gelecek özellikler için): {ADMIN_IDS}")
+try:
+    bot.infinity_polling(timeout=30, long_polling_timeout=10, allowed_updates=["message"])
+except Exception as e:
+    print(f"Polling hatası: {e}")
+    time.sleep(10)  # Retry delay
