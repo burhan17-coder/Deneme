@@ -7,7 +7,7 @@ from telebot.types import Message
 # KONFIGÜRASYON
 # ────────────────────────────────────────────────
 
-BOT_TOKEN = "BURAYA_BOTFATHER_TOKENINI_YAPISTIR"
+BOT_TOKEN = "8220540974:AAG6H-LNVERnQloPfONLTYG44OKeBm76O5s"
 
 CEKILIS_ADMIN_ID = 123456789   # ← BURAYA KENDİ TELEGRAM USER ID'ni yaz (senin ID'n)
 
