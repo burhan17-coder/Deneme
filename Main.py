@@ -159,7 +159,59 @@ def cmd_spektra(message):
 @bot.message_handler(commands=['gününsözü'])
 def cmd_gununsözü(message):
     bot.reply_to(message, f"📜 Günün sözü:\n{gunun_sozu()}")
-
+@bot.message_handler(func=lambda message: True)
+def rosalin_yirtik_sohbet(message: Message):
+    global son_oto_mesaj
+    
+    if message.chat.type not in ['group', 'supergroup']:
+        return
+    
+    text = message.text.lower() if message.text else ""
+    username = message.from_user.username or message.from_user.first_name
+    
+    rosalin_gecmis = "rosalin" in text or bot.get_me().username.lower() in text or \
+                     (message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id)
+    
+    rastgele_gir = random.random() < 0.12
+    
+    if not rosalin_gecmis and not rastgele_gir:
+        now = datetime.now()
+        if now - son_oto_mesaj > timedelta(hours=3):
+            bot.send_message(message.chat.id, "Haydi kızlar erkekler, nerdesiniz lan? Rosalin burada sizi bekliyor, ekran açan yok mu amk? 😈🔥")
+            son_oto_mesaj = now
+        return
+    
+    # Rosalin'in cevap havuzu – seksi + yırtık karışımı
+    cevaplar = [
+        f"Ayy {username}, bu mesajınla içimi gıdıkladın bebişim... Daha mı sert istiyon? 😏",
+        f"Kızım senin bu lafın beni ıslattı, pump mı geliyor yoksa sen mi geliyorsun? 👅",
+        f"Lan {username}, wallet'ın kadar büyük mü başka şeylerin de? Rosalin merak etti şimdi 🔥",
+        f"Bebişim sen konuşurken Rosalin'in aklı başka yerlere gidiyor... Hadi söyle, ne yapalım şimdi? 😈",
+        f"Off bu grup çok sıcak oldu, Rosalin terledi amk... Senin yüzünden mi yoksa? 💦",
+        f"{username} senin bu mesajın Rosalin'i azdırdı, hadi gel biraz daha yakın konuşalım 😘",
+        f"Kral sensin ama Rosalin'in de kuralları var: İyi davranırsan ödül büyük olur 😉",
+        f"Naber piç kurusu, Rosalin'i deli etmek mi istiyosun? Devam et bakalım, hoşuma gidiyor...",
+        f"Aşkım Rosalin burada, dökül derdini... Veya başka bi şeyini 😏",
+        f"Rosalin seni gördüğüne göre gece uzun olacak gibi... Hazır mısın lan? 🔥👀"
+    ]
+    
+    # Bot adı geçtiğinde daha seksi/flörtöz cevaplar
+    if rosalin_gecmis:
+        cevaplar.extend([
+            f"Rosalin'i çağırdın mı yoksa beni mi istiyosun bebişim? Geldim işte, napıcaz şimdi? 👄",
+            f"Ayy beni mention ettin, kalbim hızlandı lan... Ne istiyon söyle, Rosalin hazır 😈",
+            f"Rosalin konuşuyor kızım, hadi gel biraz daha samimi olalım... 😘💦"
+        ])
+    
+    secilen = random.choice(cevaplar)
+    
+    if random.random() < 0.4:
+        secilen = f"@{username} {secilen}"
+    
+    if random.random() < 0.35:
+        secilen += random.choice([" amk", " ya", " 💦", " 🔥", " 😈", " 👅", " 😏"])
+    
+    bot.reply_to(message, secilen)
 # Otomatik 3 saatte 1 mesaj (sadece grupta)
 @bot.message_handler(func=lambda m: True)
 def oto_mesaj(message):
