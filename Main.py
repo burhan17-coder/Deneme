@@ -7,14 +7,14 @@ from datetime import datetime, timedelta
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN eksik!")
+    raise ValueError("BOT_TOKEN eksik! Render Environment'ta ekle.")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # ── Global durumlar ──
 cekilis_aktif = False
 cekilis_katilimcilar = set()
-cekilis_kazanan_sayisi = 1  # varsayılan 1 kazanan
+cekilis_kazanan_sayisi = 1
 cekilis_baslatan_msg_id = None
 cekilis_son_mesaj_zamani = None
 
@@ -30,7 +30,7 @@ gunluk_sozler = [
 ]
 gunluk_soz_index = 0
 
-son_oto_mesaj = datetime.now() - timedelta(hours=4)  # ilk başta hemen göndermesin
+son_oto_mesaj = datetime.now() - timedelta(hours=4)
 
 # ── Yardımcı fonksiyonlar ──
 def guncel_katilim_butonu():
@@ -45,33 +45,33 @@ def gunun_sozu():
     return soz
 
 # ── Komutlar ──
-
 @bot.message_handler(commands=['start', 'yardim'])
 def cmd_start(message):
     bot.reply_to(message,
-        "Merhaba! Komutlar:\n"
+        "Merhaba! Ben Rosalin 🔥\n"
+        "Komutlar:\n"
         "/çekiliş → Yeni çekiliş başlat\n"
-        "/. → Aktif çekilişi bitir\n"
-        "/sayı <rakam> → Kaç kişi kazanacak (örn: /sayı 3)\n"
-        "/selam, /naber → Ufak sohbet\n"
-        "/spektra → Küfür mod :D\n"
+        "/. → Çekilişi bitir\n"
+        "/sayı <rakam> → Kaç kazanan olsun\n"
+        "/selam, /naber → Muhabbet edelim\n"
+        "/spektra → Küfür mod\n"
         "/gününsözü → Günün sözü\n"
-        "Çekilişe katılmak için butona basman yeterli.")
+        "Normal mesajlarda da lafa giriyorum 😏")
 
 @bot.message_handler(commands=['çekiliş'])
 def cmd_cekilis_baslat(message):
     global cekilis_aktif, cekilis_katilimcilar, cekilis_baslatan_msg_id, cekilis_son_mesaj_zamani
 
     if cekilis_aktif:
-        bot.reply_to(message, "Zaten aktif bir çekiliş var! Bitirmek için /. yaz.")
+        bot.reply_to(message, "Zaten aktif çekiliş var! /. ile bitir.")
         return
 
     cekilis_aktif = True
     cekilis_katilimcilar.clear()
     cekilis_baslatan_msg_id = message.message_id
 
-    text = f"🎉 Çekiliş başladı!\nKazanan sayısı: {cekilis_kazanan_sayisi}\nKatılmak için aşağıdaki butona bas."
-    msg = bot.send_message(message.chat.id, text, reply_markup=guncel_katilim_butonu())
+    text = f"🎉 Çekiliş başladı!\nKazanan sayısı: {cekilis_kazanan_sayisi}\nKatılmak için butona bas."
+    bot.send_message(message.chat.id, text, reply_markup=guncel_katilim_butonu())
     cekilis_son_mesaj_zamani = datetime.now()
 
 @bot.message_handler(commands=['.'])
@@ -83,7 +83,7 @@ def cmd_cekilis_bitir(message):
         return
 
     if not cekilis_katilimcilar:
-        bot.reply_to(message, "Kimse katılmadı ki...")
+        bot.reply_to(message, "Kimse katılmadı.")
         cekilis_aktif = False
         return
 
@@ -91,9 +91,7 @@ def cmd_cekilis_bitir(message):
     kazanan_text = "\n".join([f"@{bot.get_chat_member(message.chat.id, uid).user.username or 'ID:'+str(uid)}" for uid in kazananlar])
 
     bot.send_message(message.chat.id,
-        f"🎉 Çekiliş sona erdi!\n"
-        f"Kazanan(lar):\n{kazanan_text}\n"
-        f"Tebrikler! Ödül detayları yakında...")
+        f"🎉 Çekiliş bitti!\nKazanan(lar):\n{kazanan_text}\nTebrikler!")
 
     cekilis_aktif = False
     cekilis_katilimcilar.clear()
@@ -101,14 +99,13 @@ def cmd_cekilis_bitir(message):
 @bot.message_handler(commands=['sayı'])
 def cmd_sayi(message):
     global cekilis_kazanan_sayisi
-
     try:
         sayi = int(message.text.split()[1])
         if sayi < 1 or sayi > 20:
-            bot.reply_to(message, "1-20 arası bir sayı yaz.")
+            bot.reply_to(message, "1-20 arası sayı yaz.")
             return
         cekilis_kazanan_sayisi = sayi
-        bot.reply_to(message, f"Çekilişte {sayi} kişi kazanacak.")
+        bot.reply_to(message, f"Kazanan sayısı {sayi} yapıldı.")
     except:
         bot.reply_to(message, "Örnek: /sayı 3")
 
@@ -128,7 +125,6 @@ def callback_katil(call):
     cekilis_katilimcilar.add(uid)
     bot.answer_callback_query(call.id, "Katıldın! Bol şans.")
 
-    # Mesajı güncelle (kişi sayısı artsın)
     count = len(cekilis_katilimcilar)
     yeni_text = f"🎉 Çekiliş devam ediyor!\nKatılımcı: {count}\nKazanan sayısı: {cekilis_kazanan_sayisi}\nKatılmak için butona bas."
     bot.edit_message_text(yeni_text, call.message.chat.id, call.message.message_id, reply_markup=guncel_katilim_butonu())
@@ -159,6 +155,8 @@ def cmd_spektra(message):
 @bot.message_handler(commands=['gününsözü'])
 def cmd_gununsözü(message):
     bot.reply_to(message, f"📜 Günün sözü:\n{gunun_sozu()}")
+
+# ── ROSALİN SOHBET MODU + OTOMATİK MESAJ (TEK HANDLER) ──
 @bot.message_handler(func=lambda message: True)
 def rosalin_yirtik_sohbet(message: Message):
     global son_oto_mesaj
@@ -177,11 +175,11 @@ def rosalin_yirtik_sohbet(message: Message):
     if not rosalin_gecmis and not rastgele_gir:
         now = datetime.now()
         if now - son_oto_mesaj > timedelta(hours=3):
-            bot.send_message(message.chat.id, "Haydi kızlar erkekler, nerdesiniz lan? Rosalin burada sizi bekliyor, ekran açan yok mu amk? 😈🔥")
+            bot.send_message(message.chat.id, "Haydi kızlar erkekler, nerdesiniz lan? Ekran açan yok mu amk? Rosalin burada sizi bekliyor 😈🔥")
             son_oto_mesaj = now
         return
     
-    # Rosalin'in cevap havuzu – seksi + yırtık karışımı
+    # Cevap havuzu (seksi + yırtık)
     cevaplar = [
         f"Ayy {username}, bu mesajınla içimi gıdıkladın bebişim... Daha mı sert istiyon? 😏",
         f"Kızım senin bu lafın beni ıslattı, pump mı geliyor yoksa sen mi geliyorsun? 👅",
@@ -195,7 +193,6 @@ def rosalin_yirtik_sohbet(message: Message):
         f"Rosalin seni gördüğüne göre gece uzun olacak gibi... Hazır mısın lan? 🔥👀"
     ]
     
-    # Bot adı geçtiğinde daha seksi/flörtöz cevaplar
     if rosalin_gecmis:
         cevaplar.extend([
             f"Rosalin'i çağırdın mı yoksa beni mi istiyosun bebişim? Geldim işte, napıcaz şimdi? 👄",
@@ -212,15 +209,6 @@ def rosalin_yirtik_sohbet(message: Message):
         secilen += random.choice([" amk", " ya", " 💦", " 🔥", " 😈", " 👅", " 😏"])
     
     bot.reply_to(message, secilen)
-# Otomatik 3 saatte 1 mesaj (sadece grupta)
-@bot.message_handler(func=lambda m: True)
-def oto_mesaj(message):
-    global son_oto_mesaj
-    if message.chat.type in ['group', 'supergroup']:
-        now = datetime.now()
-        if now - son_oto_mesaj > timedelta(hours=3):
-            bot.send_message(message.chat.id, "Haydi nerdesiniz lan, ekran açan yok mu? 🚀")
-            son_oto_mesaj = now
 
-print("Bot çalışıyor...")
+print("Rosalin çalışıyor... 😈")
 bot.infinity_polling(timeout=20, long_polling_timeout=10)
